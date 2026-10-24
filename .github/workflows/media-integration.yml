@@ -1,0 +1,23 @@
+name: Media integration checks
+on:
+  push:
+    branches: [feature/febro-files-media-integration]
+  pull_request:
+    branches: [main]
+jobs:
+  media:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check server.js
+          node --check db.js
+          node --check media-client.js
+          node --check media-admin.js
+          node --check media-stream.js
+      - name: Media unit checks
+        run: node --test tests/media.test.js
