@@ -1,0 +1,136 @@
+/* Febro CMS — compact horizontal data tables */
+
+.admin-page .admin-table-scroll {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.admin-page .admin-table-scroll .admin-table {
+  display: table !important;
+  width: 100% !important;
+  min-width: 850px !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+}
+
+.admin-page .admin-table-scroll .admin-table thead {
+  display: table-header-group !important;
+}
+
+.admin-page .admin-table-scroll .admin-table tbody {
+  display: table-row-group !important;
+}
+
+.admin-page .admin-table-scroll .admin-table tr {
+  display: table-row !important;
+  height: 76px;
+}
+
+.admin-page .admin-table-scroll .admin-table th,
+.admin-page .admin-table-scroll .admin-table td {
+  display: table-cell !important;
+  float: none !important;
+  position: static !important;
+  width: auto !important;
+  min-width: 110px;
+  max-width: 360px;
+  padding: 14px 16px !important;
+  vertical-align: middle !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+}
+
+.admin-page .admin-table-scroll .admin-table td:first-child {
+  min-width: 300px;
+}
+
+.admin-page .admin-table-scroll .admin-table td strong {
+  display: block;
+}
+
+.admin-page .admin-table-scroll .admin-table td small {
+  display: block;
+  margin-top: 4px;
+}
+
+.admin-page .admin-table-scroll .admin-table td::before,
+.admin-page .admin-table-scroll .admin-table td::after {
+  content: none !important;
+  display: none !important;
+}
+
+.admin-page .admin-table-scroll .row-actions,
+.admin-page .admin-table-scroll .cv-admin-actions {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+  white-space: nowrap !important;
+}
+
+.admin-page .admin-table-scroll .row-actions form,
+.admin-page .admin-table-scroll .cv-admin-actions form {
+  margin: 0 !important;
+}
+
+.admin-page .admin-table-scroll .row-actions a,
+.admin-page .admin-table-scroll .row-actions button {
+  white-space: nowrap !important;
+}
+
+.admin-page .admin-table-scroll .admin-table tr[hidden] {
+  display: none !important;
+}
+
+/* Search and sort controls */
+.febro-dt-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.febro-dt-toolbar input,
+.febro-dt-toolbar select {
+  box-sizing: border-box;
+  min-height: 42px;
+  border: 1px solid #d7e0ef;
+  border-radius: 10px;
+  background: #fff;
+  color: #17243d;
+  padding: 9px 12px;
+  font: inherit;
+}
+
+.febro-dt-toolbar input {
+  width: min(100%, 340px);
+  flex: 1 1 210px;
+}
+
+.febro-dt-toolbar select {
+  flex: 0 1 220px;
+}
+
+.febro-dt-count {
+  margin: 10px 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  .admin-page .admin-table-scroll .admin-table {
+    min-width: 900px !important;
+  }
+
+  .admin-page .admin-table-scroll .admin-table td,
+  .admin-page .admin-table-scroll .admin-table th {
+    font-size: 13px !important;
+  }
+}

@@ -12,7 +12,7 @@
     "dev": "node --watch server.js",
     "admin:create": "node scripts.js create-admin",
     "test": "node --test tests/*.test.js",
-    "check": "node --check server.js && node --check db.js && node --check pdf.js && node --check public/app.js && node --check cv-sync.js && node --check mail.js",
+    "check": "node --check server.js && node --check db.js && node --check pdf.js && node --check public/app.js && node --check cv-sync.js && node --check mail.js && node --check cv-documents.js && node --check public/cv-management.js",
     "smtp:test": "node scripts/check-smtp.js"
   },
   "dependencies": {

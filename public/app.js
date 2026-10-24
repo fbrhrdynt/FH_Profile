@@ -8,8 +8,14 @@ updateTheme();
 $('.theme-toggle')?.addEventListener('click',()=>{const next=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=next;try{localStorage.setItem('fh-theme',next);}catch{}updateTheme();});
 $('.menu-toggle')?.addEventListener('click',()=>{const nav=$('#main-nav'),btn=$('.menu-toggle');nav?.classList.toggle('is-open');btn?.setAttribute('aria-expanded',nav?.classList.contains('is-open')?'true':'false');});
 $$('#main-nav a').forEach(a=>a.addEventListener('click',()=>$('#main-nav')?.classList.remove('is-open')));
-$('.admin-menu-toggle')?.addEventListener('click',()=>$('.admin-sidebar')?.classList.toggle('is-open'));
-document.addEventListener('click',e=>{if($('.admin-sidebar')?.classList.contains('is-open')&&!e.target.closest('.admin-sidebar,.admin-menu-toggle'))$('.admin-sidebar')?.classList.remove('is-open');});
+const sidebar=$('.admin-sidebar'),menuButton=$('.admin-menu-toggle'),backdrop=$('.admin-backdrop');
+function closeAdminMenu(){sidebar?.classList.remove('is-open');document.body.classList.remove('admin-nav-open');menuButton?.setAttribute('aria-expanded','false');if(backdrop)backdrop.hidden=true;}
+menuButton?.addEventListener('click',()=>{if(sidebar?.classList.contains('is-open'))return closeAdminMenu();sidebar?.classList.add('is-open');document.body.classList.add('admin-nav-open');menuButton.setAttribute('aria-expanded','true');if(backdrop)backdrop.hidden=false;$('.admin-sidebar-close')?.focus();});
+backdrop?.addEventListener('click',()=>{closeAdminMenu();menuButton?.focus()});
+$('.admin-sidebar-close')?.addEventListener('click',()=>{closeAdminMenu();menuButton?.focus()});
+$$('.admin-sidebar a').forEach(a=>a.addEventListener('click',closeAdminMenu));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sidebar?.classList.contains('is-open')){closeAdminMenu();menuButton?.focus()}if(e.key==='Tab'&&sidebar?.classList.contains('is-open')){const controls=$$('a,button,summary',sidebar).filter(x=>x.getClientRects().length);const first=controls[0],last=controls.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}}});
+window.matchMedia('(min-width:761px)').addEventListener('change',closeAdminMenu);
 
 // Sitewide command search (client-friendly keyboard controls; results from own server).
 const overlay=$('#search-overlay'),searchInput=$('#global-search'),results=$('#search-results');let searchAbort=null,searchTimer=null,highlightIndex=0;
@@ -383,4 +389,25 @@ function initNavigation(){
 
 let cleanupPage=initPage();
 initNavigation();
+})();
+
+// Visual editor retains the existing object-of-arrays storage format.
+(()=>{
+ const root=document.querySelector('#skill-editor');if(!root)return;
+ const field=document.querySelector('input[name="skills_json"]'),form=field.form;
+ let groups;try{const value=JSON.parse(field.value);if(!value||Array.isArray(value)||typeof value!=='object'||Object.values(value).some(v=>!Array.isArray(v)||v.some(s=>typeof s!=='string')))throw Error();groups=Object.entries(value).map(([name,skills])=>({name,skills:[...skills]}));}catch{root.textContent='Data skill lama tidak dapat dibaca. Nilai asli tetap disimpan. Hubungi administrator untuk pemulihan dari backup.';return;}
+ const status=document.createElement('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+ const node=(tag,text)=>{const e=document.createElement(tag);if(text)e.textContent=text;return e;};
+ const button=(text,fn)=>{const b=node('button',text);b.type='button';b.className='button secondary';b.onclick=fn;return b;};
+ function sync(){const names=groups.map(g=>g.name.trim());const error=names.some(n=>!n)?'Nama grup wajib diisi.':new Set(names).size!==names.length?'Nama grup harus unik.':groups.some(g=>g.skills.some(s=>!s.trim()))?'Nama skill wajib diisi.':'';status.textContent=error;field.value=JSON.stringify(Object.fromEntries(groups.map(g=>[g.name,[...g.skills]])));return !error;}
+ function move(list,index,delta){const target=index+delta;if(target<0||target>=list.length)return;[list[index],list[target]]=[list[target],list[index]];render();}
+ function render(){root.replaceChildren();root.append(node('h2','Skill Groups'),status);
+ groups.forEach((g,i)=>{const card=node('article');card.className='skill-group';const label=node('label','Nama grup');const name=node('input');name.value=g.name;name.maxLength=120;name.setAttribute('aria-label','Nama grup');name.oninput=()=>{g.name=name.value;sync();};label.append(name);card.append(label);
+ const actions=node('div');actions.className='row-actions';const up=button('↑ Grup',()=>move(groups,i,-1)),down=button('↓ Grup',()=>move(groups,i,1));up.disabled=i===0;down.disabled=i===groups.length-1;
+ actions.append(up,down,button('Hapus grup',()=>{const confirm=node('div','Hapus grup beserta skill? ');confirm.className='skill-confirm';confirm.append(button('Ya, hapus',()=>{groups.splice(i,1);render();}),button('Batal',()=>confirm.remove()));actions.replaceChildren(confirm);}));card.append(actions);
+ const chips=node('div');chips.className='skill-chips';g.skills.forEach((skill,j)=>{const chip=node('div');chip.className='skill-chip';const input=node('input');input.value=skill;input.maxLength=200;input.setAttribute('aria-label','Edit skill');input.oninput=()=>{g.skills[j]=input.value;sync();};const left=button('←',()=>move(g.skills,j,-1)),right=button('→',()=>move(g.skills,j,1));left.disabled=j===0;right.disabled=j===g.skills.length-1;left.setAttribute('aria-label','Pindahkan skill ke kiri');right.setAttribute('aria-label','Pindahkan skill ke kanan');const remove=button('×',()=>{g.skills.splice(j,1);render();});remove.setAttribute('aria-label','Hapus skill '+skill);chip.append(input,left,right,remove);chips.append(chip);});
+ card.append(chips,button('+ Skill',()=>{g.skills.push('');render();cardFocus(i);}));root.append(card);});
+ root.append(button('+ Grup',()=>{groups.push({name:'',skills:[]});render();cardFocus(groups.length-1);}));sync();}
+ function cardFocus(i){root.querySelectorAll('.skill-group')[i]?.querySelector('input')?.focus();}
+ form.addEventListener('submit',event=>{if(!sync()){event.preventDefault();status.scrollIntoView({block:'center'});} });render();
 })();

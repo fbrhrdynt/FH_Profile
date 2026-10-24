@@ -21,6 +21,40 @@ CREATE INDEX IF NOT EXISTS idx_entries_kind ON entries(kind, enabled, featured);
 CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE, csrf TEXT NOT NULL, expires_at INTEGER NOT NULL);
 `);
+// Additive attachment references for future Febro Files integration.
+// Private by default; no actual file storage or public serving is enabled.
+db.exec(`CREATE TABLE IF NOT EXISTS entry_files (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ entry_id INTEGER NOT NULL REFERENCES entries(id) ON DELETE RESTRICT,
+ remote_id TEXT NOT NULL UNIQUE,
+ role TEXT NOT NULL CHECK(role IN ('cover','gallery','document','certificate','attachment')),
+ original_name TEXT NOT NULL,
+ mime_type TEXT NOT NULL,
+ byte_size INTEGER NOT NULL,
+ sha256 TEXT NOT NULL DEFAULT '',
+ caption TEXT NOT NULL DEFAULT '',
+ visibility TEXT NOT NULL DEFAULT 'private' CHECK(visibility IN ('public','unlisted','private')),
+ allow_preview INTEGER NOT NULL DEFAULT 0,
+ allow_download INTEGER NOT NULL DEFAULT 0,
+ sort_order INTEGER NOT NULL DEFAULT 0,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_entry_files_entry ON entry_files(entry_id,sort_order,id);`);
+// Document access migrations preserve all existing file visibility.
+if(!db.prepare('PRAGMA table_info(entry_files)').all().some(c=>c.name==='requestable'))db.exec('ALTER TABLE entry_files ADD COLUMN requestable INTEGER NOT NULL DEFAULT 0');
+db.exec(`CREATE TABLE IF NOT EXISTS access_requests(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,email TEXT NOT NULL,phone TEXT NOT NULL,reason TEXT NOT NULL,ip_hash TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',delivery TEXT NOT NULL DEFAULT 'pending',token_hash TEXT UNIQUE,expires_at INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS access_items(request_id INTEGER NOT NULL REFERENCES access_requests(id),file_id INTEGER NOT NULL REFERENCES entry_files(id) ON DELETE CASCADE,approved INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(request_id,file_id));
+CREATE TABLE IF NOT EXISTS access_history(id INTEGER PRIMARY KEY AUTOINCREMENT,request_id INTEGER NOT NULL REFERENCES access_requests(id),actor TEXT NOT NULL,event TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX IF NOT EXISTS access_rate ON access_requests(ip_hash,created_at);`);
+// Snapshot legacy operations without widening any existing approval.
+db.exec('BEGIN IMMEDIATE');
+try{for(const column of ['grant_preview','grant_download']){
+ if(!db.prepare('PRAGMA table_info(access_items)').all().some(c=>c.name===column)){
+  db.exec(`ALTER TABLE access_items ADD COLUMN ${column} INTEGER NOT NULL DEFAULT 0`);
+  const source=column==='grant_preview'?'allow_preview':'allow_download';
+  db.exec(`UPDATE access_items SET ${column}=COALESCE((SELECT ${source} FROM entry_files WHERE id=access_items.file_id),0)`);
+ }
+}db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}
 // Backward-compatible v1.3 migrations. Existing content, uploads and admin sessions remain intact.
 const cols=db.prepare('PRAGMA table_info(entries)').all().map(c=>c.name);
 if(!cols.includes('access_mode'))db.exec("ALTER TABLE entries ADD COLUMN access_mode TEXT NOT NULL DEFAULT 'view_only'");
@@ -40,7 +74,23 @@ for(const [name,sql] of Object.entries({
  reviewed_at:"TEXT NOT NULL DEFAULT ''",
  sent_at:"TEXT NOT NULL DEFAULT ''"
 }))if(!cvColumns.has(name))db.exec(`ALTER TABLE cv_requests ADD COLUMN ${name} ${sql}`);
+if(!cvColumns.has('cv_document_id'))db.exec('ALTER TABLE cv_requests ADD COLUMN cv_document_id INTEGER REFERENCES cv_documents(id)');
 db.exec(`CREATE INDEX IF NOT EXISTS idx_cv_tokens ON cv_requests(token_hash);
+CREATE TABLE IF NOT EXISTS cv_documents (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ remote_id TEXT NOT NULL UNIQUE,
+ original_name TEXT NOT NULL,
+ byte_size INTEGER NOT NULL CHECK(byte_size>0),
+ sha256 TEXT NOT NULL,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS cv_configuration (
+ id INTEGER PRIMARY KEY CHECK(id=1),
+ active_document_id INTEGER REFERENCES cv_documents(id),
+ requests_enabled INTEGER NOT NULL DEFAULT 1 CHECK(requests_enabled IN (0,1)),
+ approval_hours INTEGER NOT NULL CHECK(approval_hours BETWEEN 1 AND 168)
+);
+
 CREATE TABLE IF NOT EXISTS contact_messages(
  id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,email TEXT NOT NULL,
  phone TEXT NOT NULL DEFAULT '',message TEXT NOT NULL,
