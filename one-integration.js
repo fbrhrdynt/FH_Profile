@@ -40,7 +40,7 @@ function setup({db,accessHandler,cvAction}){
    const secret=process.env.FILES_CMS_SERVICE_TOKEN;
    if(req.method!=='POST'||!secret||secret.length<32||!equal(req.headers.authorization,'Bearer '+secret)||req.headers.origin)return reply(res,401,{error:'Unauthorized'});
    let p;try{p=JSON.parse(await body(req));}catch{return reply(res,400,{error:'Invalid payload'});}
-   if(!/^[a-f0-9]{64}$/.test(p.tokenHash))return reply(res,400,{error:'Invalid token hash'});
+   if(!p||typeof p!=='object'||Array.isArray(p)||typeof p.tokenHash!=='string'||!/^[a-f0-9]{64}$/.test(p.tokenHash))return reply(res,400,{error:'Invalid token hash'});
    const r=db.prepare("SELECT id,expires_at FROM access_requests WHERE token_hash=? AND status IN ('approved','partial') AND expires_at>?").get(p.tokenHash,Date.now());
    if(!r)return reply(res,410,{error:'Access expired or revoked'});
    const files=db.prepare('SELECT f.id,f.remote_id,f.original_name,f.caption,f.requestable,f.allow_preview,f.allow_download,i.grant_preview,i.grant_download FROM access_items i JOIN entry_files f ON f.id=i.file_id JOIN entries e ON e.id=f.entry_id WHERE i.request_id=? AND i.approved=1 AND e.enabled=1 AND f.requestable=1 ORDER BY f.sort_order,f.id').all(r.id).map(f=>({id:f.id,remoteId:f.remote_id,name:f.original_name,caption:f.caption,preview:!!f.grant_preview&&!!(f.allow_preview||f.allow_download||f.requestable),download:!!f.grant_download&&!!f.allow_download}));
@@ -58,7 +58,8 @@ function setup({db,accessHandler,cvAction}){
   if(req.method==='GET'&&route==='/overview')return reply(res,200,{totals:totals()});
   if(req.method==='GET'&&route==='/inbox'){
    const kind=url.searchParams.get('kind'),limit=Math.min(200,Math.max(1,Number(url.searchParams.get('limit'))||100)),offset=Math.max(0,Number(url.searchParams.get('offset'))||0);
-   if(kind&&!table[kind])return reply(res,400,{error:'Invalid kind'});
+   if(kind&&!Object.hasOwn(table,kind))return reply(res,400,{error:'Invalid kind'});
+   if(!Number.isSafeInteger(limit)||!Number.isSafeInteger(offset)||offset>1000000)return reply(res,400,{error:'Invalid pagination'});
    const wanted=url.searchParams.get('status');
    if(wanted&&!['pending','approved','partial','rejected','revoked','expired','email_failed','email_pending','read','unread'].includes(wanted))return reply(res,400,{error:'Invalid status'});
    const items=(kind?[kind]:Object.keys(table)).flatMap(k=>{
@@ -70,11 +71,11 @@ function setup({db,accessHandler,cvAction}){
   }
   const m=route.match(/^\/(document|cv|contact)\/([1-9]\d*)(\/decision)?$/);
   if(!m)return reply(res,404,{error:'Not found'});
-  const [,kind,idText,decision]=m,id=Number(idText),r=raw(kind,id);if(!r)return reply(res,404,{error:'Request not found'});
+  const [,kind,idText,decision]=m,id=Number(idText);if(!Number.isSafeInteger(id))return reply(res,400,{error:'Invalid ID'});const r=raw(kind,id);if(!r)return reply(res,404,{error:'Request not found'});
   if(req.method==='GET'&&!decision)return reply(res,200,{item:item(kind,r,true)});
   if(req.method!=='POST'||!decision)return reply(res,405,{error:'Method not allowed'});
   let p;try{p=JSON.parse(text);}catch{return reply(res,400,{error:'Invalid JSON'});}
-  if(typeof p.actor!=='string'||p.actor.length<1||p.actor.length>200||typeof p.idempotencyKey!=='string'||!/^[a-zA-Z0-9:_-]{16,128}$/.test(p.idempotencyKey)||typeof p.expectedStatus!=='string')return reply(res,400,{error:'Invalid action metadata'});
+  if(!p||typeof p!=='object'||Array.isArray(p)||typeof p.actor!=='string'||p.actor.length<1||p.actor.length>200||typeof p.idempotencyKey!=='string'||!/^[a-zA-Z0-9:_-]{16,128}$/.test(p.idempotencyKey)||typeof p.expectedStatus!=='string')return reply(res,400,{error:'Invalid action metadata'});
   const fingerprint=digest(JSON.stringify({kind,id,...p})),previous=db.prepare('SELECT * FROM one_integration_actions WHERE key=?').get(p.idempotencyKey);
   if(previous)return previous.fingerprint!==fingerprint?reply(res,409,{error:'Idempotency key reused'}):previous.result?reply(res,JSON.parse(previous.result).status,JSON.parse(previous.result).data):reply(res,409,{error:'Decision in progress or interrupted; inspect request before retry'});
   if(item(kind,r).status!==p.expectedStatus)return reply(res,409,{error:'Request changed; refresh before reviewing'});
