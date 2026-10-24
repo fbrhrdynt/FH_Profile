@@ -4,6 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
 const mediaAdmin=require('./media-admin');
+const mediaStream=require('./media-stream');
 // Private SMTP and read-only PocketBase settings from a non-public .env file.
 if(typeof process.loadEnvFile==='function'&&fs.existsSync(path.join(__dirname,'.env')))process.loadEnvFile(path.join(__dirname,'.env'));
 const {URL}=require('node:url');
@@ -161,6 +162,8 @@ function downloadCV(res,token){if(!/^[a-f0-9]{64}$/.test(token))return send(res,
 
 async function main(req,res){const url=new URL(req.url,'http://localhost'),pathname=decodeURIComponent(url.pathname).replace(/\/+$/,'')||'/';if(staticFile(pathname,res))return;
  const site=getSettings();const method=req.method;
+ const mediaFile=pathname.match(/^\/media\/file\/(\d+)\/(preview|download)$/);
+ if(mediaFile)return mediaStream.stream(req,res,db,getAuth(req),Number(mediaFile[1]),mediaFile[2]);
  if(pathname==='/api/cv-request'&&method==='POST')return handleCVRequest(req,res);
  if(pathname==='/api/contact'&&method==='POST')return handleContact(req,res);
  const cvDownload=pathname.match(/^\/cv\/download\/([a-f0-9]{64})$/);if(cvDownload&&method==='GET')return downloadCV(res,cvDownload[1]);
