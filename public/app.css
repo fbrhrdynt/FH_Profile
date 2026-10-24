@@ -131,3 +131,10 @@
 /* Focus moves to the new heading after client-side navigation. */
 .site-wrapper [tabindex="-1"]:focus{outline:none}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hero-down{animation:none}}
+
+/* Portfolio category filtering */
+.portfolio-jump button{font:11px Consolas,monospace;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 11px;color:var(--text);cursor:pointer;touch-action:manipulation}
+.portfolio-jump button:hover,.portfolio-jump button.active{border-color:var(--accent);color:var(--accent)}
+.portfolio-jump button.active{background:var(--surface-2,var(--surface))}
+.portfolio-jump button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.portfolio-section[hidden]{display:none!important}
