@@ -24,6 +24,24 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
 // Reinitialize only page-specific controls after a partial navigation.
 function initPage(){
 const pageEvents=new AbortController();
+const portfolioFilters=$('#portfolio-filters');
+if(portfolioFilters){
+  const sections=$('[data-portfolio-section]');
+  portfolioFilters.addEventListener('click',event=>{
+    const button=event.target.closest('button[data-portfolio-category]');
+    if(!button||!portfolioFilters.contains(button))return;
+    const selected=button.dataset.portfolioCategory;
+    $('button[data-portfolio-category]',portfolioFilters).forEach(b=>{
+      const active=b===button;
+      b.classList.toggle('active',active);
+      b.setAttribute('aria-pressed',String(active));
+    });
+    sections.forEach(section=>{
+      section.hidden=selected!=='all'&&section.dataset.portfolioSection!==selected;
+    });
+  },{signal:pageEvents.signal});
+}
+
 const stopParticles=initParticles();
 // Client-side content filtering and sorting.
 const search=$('#collection-search'),collection=$('#filter-collection'),categories=$('#collection-categories');
