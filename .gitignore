@@ -43,3 +43,31 @@ uploads/
 *.zip
 *.tar
 *.tar.gz
+
+# Local production data
+.env
+.env.*
+!.env.example
+data/
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+node_modules/
+*.log
+backups/
+
+# Production secrets and runtime
+.env
+.env.*
+!.env.example
+data/
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+node_modules/
+*.log
+backups/
