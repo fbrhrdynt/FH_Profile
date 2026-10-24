@@ -131,3 +131,78 @@
 /* Focus moves to the new heading after client-side navigation. */
 .site-wrapper [tabindex="-1"]:focus{outline:none}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hero-down{animation:none}}
+
+
+/* Compact horizontal CMS tables on phones: override legacy card transformations. */
+@media (max-width: 760px) {
+  .admin-panel.admin-table-scroll {
+    display: block !important;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    padding: 0 !important;
+  }
+  .admin-table-scroll > .admin-table {
+    display: table !important;
+    width: max-content !important;
+    min-width: 760px !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+  }
+  .admin-table thead { display: table-header-group !important; }
+  .admin-table tbody { display: table-row-group !important; }
+  .admin-table tr { display: table-row !important; height: 72px !important; }
+  .admin-table th, .admin-table td {
+    display: table-cell !important;
+    width: auto !important;
+    min-width: 95px;
+    padding: 12px 14px !important;
+    vertical-align: middle !important;
+    text-align: left;
+    white-space: nowrap;
+    border-radius: 0 !important;
+  }
+  .admin-table td:first-child { min-width: 230px; max-width: 340px; }
+  .admin-table td:first-child strong,
+  .admin-table td:first-child small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+  }
+  .admin-table td:first-child strong { white-space: nowrap; }
+  .admin-table td:last-child { min-width: 155px; }
+  .admin-table .row-actions,
+  .admin-table .cv-admin-actions,
+  .admin-table .category-actions {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    white-space: nowrap;
+  }
+  .admin-table .row-actions form,
+  .admin-table .cv-admin-actions form,
+  .admin-table .category-actions form { margin: 0 !important; }
+  .admin-table .category-rename { flex-wrap: nowrap !important; }
+}
+
+
+/* v5: Keep native tables on mobile; defeat legacy responsive card layout. */
+@media screen {
+  body.admin-page .admin-table-scroll {display:block!important;overflow-x:auto!important;max-width:100%!important;-webkit-overflow-scrolling:touch!important;}
+  body.admin-page .admin-table-scroll table.admin-table {display:table!important;width:max-content!important;min-width:850px!important;border-collapse:collapse!important;}
+  body.admin-page .admin-table-scroll table.admin-table thead {display:table-header-group!important;}
+  body.admin-page .admin-table-scroll table.admin-table tbody {display:table-row-group!important;}
+  body.admin-page .admin-table-scroll table.admin-table tr {display:table-row!important;height:64px!important;}
+  body.admin-page .admin-table-scroll table.admin-table th,
+  body.admin-page .admin-table-scroll table.admin-table td {display:table-cell!important;position:static!important;float:none!important;vertical-align:middle!important;width:auto!important;max-width:360px!important;padding:10px 14px!important;white-space:nowrap!important;height:64px!important;}
+  body.admin-page .admin-table-scroll table.admin-table td::before,
+  body.admin-page .admin-table-scroll table.admin-table td::after {content:none!important;display:none!important;}
+  body.admin-page .admin-table-scroll table.admin-table td:first-child {min-width:250px!important;}
+  body.admin-page .admin-table-scroll table.admin-table .row-actions {display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:12px!important;}
+  body.admin-page .admin-table-scroll table.admin-table .row-actions form {margin:0!important;}
+  body.admin-page .admin-table-scroll table.admin-table tr[hidden]{display:none!important;}
+}
