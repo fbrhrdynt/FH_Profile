@@ -21,6 +21,25 @@ CREATE INDEX IF NOT EXISTS idx_entries_kind ON entries(kind, enabled, featured);
 CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE, csrf TEXT NOT NULL, expires_at INTEGER NOT NULL);
 `);
+// Additive attachment references for future Febro Files integration.
+// Private by default; no actual file storage or public serving is enabled.
+db.exec(`CREATE TABLE IF NOT EXISTS entry_files (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ entry_id INTEGER NOT NULL REFERENCES entries(id) ON DELETE RESTRICT,
+ remote_id TEXT NOT NULL UNIQUE,
+ role TEXT NOT NULL CHECK(role IN ('cover','gallery','document','certificate','attachment')),
+ original_name TEXT NOT NULL,
+ mime_type TEXT NOT NULL,
+ byte_size INTEGER NOT NULL,
+ sha256 TEXT NOT NULL DEFAULT '',
+ caption TEXT NOT NULL DEFAULT '',
+ visibility TEXT NOT NULL DEFAULT 'private' CHECK(visibility IN ('public','unlisted','private')),
+ allow_preview INTEGER NOT NULL DEFAULT 0,
+ allow_download INTEGER NOT NULL DEFAULT 0,
+ sort_order INTEGER NOT NULL DEFAULT 0,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_entry_files_entry ON entry_files(entry_id,sort_order,id);`);
 // Backward-compatible v1.3 migrations. Existing content, uploads and admin sessions remain intact.
 const cols=db.prepare('PRAGMA table_info(entries)').all().map(c=>c.name);
 if(!cols.includes('access_mode'))db.exec("ALTER TABLE entries ADD COLUMN access_mode TEXT NOT NULL DEFAULT 'view_only'");
