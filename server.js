@@ -3,6 +3,7 @@ const http=require('node:http');
 const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
+const mediaAdmin=require('./media-admin');
 // Private SMTP and read-only PocketBase settings from a non-public .env file.
 if(typeof process.loadEnvFile==='function'&&fs.existsSync(path.join(__dirname,'.env')))process.loadEnvFile(path.join(__dirname,'.env'));
 const {URL}=require('node:url');
@@ -174,6 +175,7 @@ async function main(req,res){const url=new URL(req.url,'http://localhost'),pathn
   const auth=getAuth(req);
   if(pathname==='/admin/login'){if(method==='GET')return send(res,200,loginPage());if(method==='POST'){const now=Date.now(),ip=req.socket.remoteAddress||'local',attempt=loginAttempts.get(ip)||{count:0,since:now};if(now-attempt.since>15*60*1000){attempt.count=0;attempt.since=now;}if(attempt.count>=8)return send(res,429,loginPage('Too many attempts. Try again later.'));const p=await readForm(req);const a=db.prepare('SELECT * FROM admins WHERE email=?').get(String(p.email||'').trim().toLowerCase());if(!a||!verifyPassword(String(p.password||''),a.password_hash)){attempt.count++;loginAttempts.set(ip,attempt);return send(res,401,loginPage('Invalid email or password.'));}loginAttempts.delete(ip);db.prepare('DELETE FROM sessions WHERE expires_at<?').run(now);return redirect(res,'/admin',{'Set-Cookie':newSession(req,res,a.id)});}}
   if(!auth)return redirect(res,'/admin/login');
+  if(/^\/admin\/media\/\d+(?:\/\d+)?$/.test(pathname))return mediaAdmin.handle(req,res,{db,auth,url,pathname});
   if(pathname==='/admin/logout'&&method==='POST'){const p=await readForm(req);if(!csrfValid(auth,p))return send(res,403,'Forbidden');const token=cookies(req).fh_admin;db.prepare('DELETE FROM sessions WHERE token_hash=?').run(hash(token));return redirect(res,'/admin/login',{'Set-Cookie':'fh_admin=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0'});}
   if(pathname==='/admin'&&method==='GET')return send(res,200,adminOverview(auth));
   if(pathname==='/admin/cv-requests'&&method==='GET'){const notices={approved:'CV link successfully emailed to requester.',email_failed:'Approval email failed. Check SMTP settings; you can retry.',smtp_missing:'SMTP is not configured.',reject:'Request rejected.',revoke:'Temporary link revoked.'};return send(res,200,cvRequestsAdmin(auth,notices[url.searchParams.get('result')]||''));}
