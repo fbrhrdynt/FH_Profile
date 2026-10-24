@@ -1,0 +1,45 @@
+node_modules/
+data/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# Dependencies
+node_modules/
+.next/
+dist/
+build/
+
+# Runtime data
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+logs/
+uploads/
+
+# Backups
+*.bak
+*.backup
+*.bak.*
+*.backup.*
+*.log
+*.zip
+*.tar
+*.tar.gz

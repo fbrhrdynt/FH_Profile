@@ -1,0 +1,21 @@
+{
+  "name": "febro-personal-website",
+  "version": "1.4.0",
+  "private": true,
+  "description": "Personal website and CMS for Febro Herdyanto — lightweight Node.js & SQLite",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "admin:create": "node scripts.js create-admin",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check server.js && node --check db.js && node --check pdf.js && node --check public/app.js && node --check cv-sync.js && node --check mail.js",
+    "smtp:test": "node scripts/check-smtp.js"
+  },
+  "dependencies": {
+    "nodemailer": "^7.0.10"
+  }
+}
